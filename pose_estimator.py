@@ -260,4 +260,4 @@ if __name__ == '__main__':
     exec_time = time.time() - start_time
 
     print(results)
-    print("Execution time: %s seconds" % exec_time)
+    print(f"Execution time: {exec_time:.9f} seconds")
