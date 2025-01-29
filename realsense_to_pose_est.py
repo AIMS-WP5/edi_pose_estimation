@@ -5,13 +5,11 @@ from PIL import Image
 import io
 import requests
 import time
-from pose_estimator import estimate_pose, estimate_pose_fast
+from pose_estimator import estimate_pose, estimate_pose_fast, estimation_setup
 
 
 # setup for faster pose estimation
-det_model = RTDETR('rtdetr-x.pt')
-sam = SAM('mobile_sam.pt')
-ref_pcd = o3d.io.read_point_cloud("./asset/bottle_large.pcd")
+[det_model,cls_idxs,sam,DOWN_SAMPLE_SIZE,ref_pcd] = estimation_setup()
 
 # Configure depth and color streams
 pipeline = rs.pipeline()
@@ -67,7 +65,7 @@ try:
         # Do I need the images in a different format?
         # What happens on no detections?
         # result_poses = estimate_pose(color_img=color_image, depth_img=depth_image, Kdepth=Kdepth)
-        results = estimate_pose_fast(color_img, depth_img, Kdepth, det_model, sam, ref_pcd)
+        results = estimate_pose_fast(color_img, depth_img, Kdepth, det_model, cls_idxs, sam, DOWN_SAMPLE_SIZE, ref_pcd)
         print(result_poses)
 
         time.sleep(0.1)
