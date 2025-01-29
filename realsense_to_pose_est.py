@@ -5,8 +5,13 @@ from PIL import Image
 import io
 import requests
 import time
+from pose_estimator import estimate_pose, estimate_pose_fast
 
-from pose_estimator import estimate_pose
+
+# setup for faster pose estimation
+det_model = RTDETR('rtdetr-x.pt')
+sam = SAM('mobile_sam.pt')
+ref_pcd = o3d.io.read_point_cloud("./asset/bottle_large.pcd")
 
 # Configure depth and color streams
 pipeline = rs.pipeline()
@@ -18,7 +23,7 @@ pipeline_profile = config.resolve(pipeline_wrapper)
 device = pipeline_profile.get_device()
 device_product_line = str(device.get_info(rs.camera_info.product_line))
 
-# Get intrinsic matrix
+# Get intrinsic matrix of camera
 intr = profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
 fx = float(intr.fx) # Focal length of x
 fy = float(intr.fy) # Focal length of y
@@ -36,7 +41,7 @@ for s in device.sensors:
         found_rgb = True
         break
 if not found_rgb:
-    print("The demo requires Depth camera with Color sensor")
+    print("Depth camera with Color sensor is required")
     exit(0)
 
 config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
@@ -61,7 +66,8 @@ try:
 
         # Do I need the images in a different format?
         # What happens on no detections?
-        result_poses = estimate_pose(color_img=color_image, depth_img=depth_image, Kdepth=Kdepth)
+        # result_poses = estimate_pose(color_img=color_image, depth_img=depth_image, Kdepth=Kdepth)
+        results = estimate_pose_fast(color_img, depth_img, Kdepth, det_model, sam, ref_pcd)
         print(result_poses)
 
         time.sleep(0.1)
