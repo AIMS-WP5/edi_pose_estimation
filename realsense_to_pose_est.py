@@ -1,9 +1,6 @@
 import pyrealsense2 as rs
 import numpy as np
 import cv2
-from PIL import Image
-import io
-import requests
 import time
 from pose_estimator import estimate_pose, estimate_pose_fast, estimation_setup
 
