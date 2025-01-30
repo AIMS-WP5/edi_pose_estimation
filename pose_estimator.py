@@ -222,7 +222,7 @@ def estimate_pose_fast(color_img, depth_img, Kdepth, det_model, cls_idxs, sam, D
     FITNESS_LIMIT = 0.4
     filtered_results = list(filter(lambda x: x[2].fitness > FITNESS_LIMIT, results))
 
-    return filtered_results
+    return results
 
 def estimation_setup():
     det_model = RTDETR('rtdetr-x.pt')
