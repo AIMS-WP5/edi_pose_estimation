@@ -4,9 +4,8 @@ import cv2
 import time
 from pose_estimator import estimate_pose, estimate_pose_fast, estimation_setup
 
-
 # setup for faster pose estimation
-[det_model,cls_idxs,sam,DOWN_SAMPLE_SIZE,ref_pcd] = estimation_setup()
+det_model, cls_idxs, sam, DOWN_SAMPLE_SIZE, ref_pcd = estimation_setup()
 
 # Configure depth and color streams
 pipeline = rs.pipeline()
@@ -26,9 +25,10 @@ ppx = float(intr.ppx) # Principle Point Offsey of x (aka. cx)
 ppy = float(intr.ppy) # Principle Point Offsey of y (aka. cy)
 axs = 0.0 # Axis skew
 
-Kdepth = np.array([[fx, axs, ppx],
+camera_matrix = np.array([[fx, axs, ppx],
                     [0.0, fy, ppy],
                     [0.0, 0.0, 1.0]])
+dist_coeffs = np.asanyarray(intr.coeffs)
 
 found_rgb = False
 for s in device.sensors:
@@ -59,11 +59,17 @@ try:
         depth_image = np.asanyarray(depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
 
-        # result_poses = estimate_pose(color_img=color_image, depth_img=depth_image, Kdepth=Kdepth)
-        result_poses = estimate_pose_fast(color_image, depth_image, Kdepth, det_model, cls_idxs, sam, DOWN_SAMPLE_SIZE, ref_pcd)
+        # result_poses = estimate_pose(color_img=color_image, depth_img=depth_image, Kdepth=camera_matrix)
+        result_poses = estimate_pose_fast(color_image, depth_image, camera_matrix, det_model, cls_idxs, sam, DOWN_SAMPLE_SIZE, ref_pcd)
         print("Detected poses:",result_poses)
+        for pose in result_poses:
+            cv2.drawFrameAxes(color_image, camera_matrix, dist_coeffs, pose[1], pose[0], 0.05, 1)
 
-        time.sleep(0.1)
+        cv2.imshow("Pose estimation", color_image)
+        # Exit on 'q' key
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+        # time.sleep(0.1)
 
 finally:
 

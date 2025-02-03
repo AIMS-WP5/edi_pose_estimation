@@ -111,3 +111,4 @@ finally:
 
     # Stop streaming
     pipeline.stop()
+    cv2.destroyAllWindows()
