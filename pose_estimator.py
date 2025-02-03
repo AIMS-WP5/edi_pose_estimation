@@ -213,6 +213,8 @@ def estimate_pose_fast(color_img, depth_img, Kdepth, det_model, cls_idxs, sam, D
     ## detection
     results = det_model(color_img, classes = cls_idxs)
     det_result = results[0]
+    if len(det_result.boxes) == 0:
+        return []
     sam_result = sam.predict(color_img, bboxes = det_result.boxes.xyxy)[0]
     ## pose calculation
     results = [estimate_pose_for_mask(pts,color_img,mask.cpu().numpy(),DOWN_SAMPLE_SIZE,ref_pcd) for mask in sam_result.masks.data]
@@ -237,15 +239,20 @@ def estimation_setup():
 
 
 if __name__ == '__main__':
-    color_img = cv2.imread('./asset/example_image.png')
-    depth_img = cv2.imread('./asset/example_depth.png', cv2.IMREAD_ANYDEPTH)
+    # color_img = cv2.imread('./asset/example_image.png')
+    # depth_img = cv2.imread('./asset/example_depth.png', cv2.IMREAD_ANYDEPTH)
+    color_img = cv2.imread('./testing/color.png')
+    depth_img = cv2.imread('./testing/depth.png', cv2.IMREAD_ANYDEPTH)
     # color_img = cv2.imread('./asset/scene_000001_oi_000_lpi_0_final.jpg')
     # color_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2RGB)
     # depth_img = cv2.imread('./asset/scene_000001_oi_000_depthmap.jpg', cv2.IMREAD_UNCHANGED)
     # depth_img = depth_img.astype(np.uint16)
-    Kdepth = np.array([[637.22601318,   0.        , 644.54681396],
-                        [  0.        , 636.76959229, 363.35079956],
-                        [  0.        ,   0.        ,   1.        ]])
+    # Kdepth = np.array([[637.22601318,   0.        , 644.54681396],
+    #                     [  0.        , 636.76959229, 363.35079956],
+    #                     [  0.        ,   0.        ,   1.        ]])
+    Kdepth = np.array([[     612.82,           0.,      320.63],
+                        [          0.,      612.95,      241.23],
+                        [          0.,           0.,           1.]])
 
     [det_model,cls_idxs,sam,DOWN_SAMPLE_SIZE,ref_pcd] = estimation_setup()
 
