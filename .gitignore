@@ -1,3 +1,5 @@
 *.pyc
 testing/
 utils_testing/
+mobile_sam.pt
+rtdetr-x.pt
