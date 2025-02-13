@@ -2,7 +2,7 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 import time
-from pose_estimator import estimate_pose, estimate_pose_fast, estimation_setup
+from pose_estimator import estimate_pose, estimation_setup
 import csv
 import datetime
 
@@ -91,7 +91,7 @@ try:
         # cv2.imwrite("./testing/depth.png", depth_image)
 
         detection_start = time.time()
-        result_poses = estimate_pose_fast(color_image, depth_image, camera_matrix, det_model, cls_idxs, sam, DOWN_SAMPLE_SIZE, ref_pcd)
+        result_poses = estimate_pose(color_image, depth_image, camera_matrix, det_model, cls_idxs, sam, DOWN_SAMPLE_SIZE, ref_pcd)
         detection_time = time.time() - detection_start
         print("Detected poses:",result_poses)
         if result_poses == []:
