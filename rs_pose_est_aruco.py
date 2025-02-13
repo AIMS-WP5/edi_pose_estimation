@@ -26,8 +26,8 @@ writer.writeheader()
 # Load ArUco dictionary
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 parameters = cv2.aruco.DetectorParameters()
-marker_length = 0.02 # meters
-marker_separation = 0.01
+marker_length = 0.02 # m
+marker_separation = 0.01 # m
 board = cv2.aruco.GridBoard((5,7), marker_length, marker_separation, aruco_dict)
 
 # setup for faster pose estimation
@@ -37,11 +37,10 @@ det_model, cls_idxs, sam, DOWN_SAMPLE_SIZE, ref_pcd = estimation_setup()
 pipeline = rs.pipeline()
 config = rs.config()
 
-# Get device product line for setting a supporting resolution
 pipeline_wrapper = rs.pipeline_wrapper(pipeline)
 pipeline_profile = config.resolve(pipeline_wrapper)
 device = pipeline_profile.get_device()
-device_product_line = str(device.get_info(rs.camera_info.product_line))
+# device_product_line = str(device.get_info(rs.camera_info.product_line))
 
 # Get intrinsic matrix of camera
 intr = pipeline_profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
@@ -51,9 +50,10 @@ ppx = float(intr.ppx) # Principle Point Offsey of x (aka. cx)
 ppy = float(intr.ppy) # Principle Point Offsey of y (aka. cy)
 axs = 0.0 # Axis skew
 
-camera_matrix = np.array([[fx, axs, ppx],
-                    [0.0, fy, ppy],
-                    [0.0, 0.0, 1.0]])
+camera_matrix = np.array([
+    [fx, axs, ppx],
+    [0.0, fy, ppy],
+    [0.0, 0.0, 1.0]])
 dist_coeffs = np.asanyarray(intr.coeffs)
 
 found_rgb = False
@@ -67,6 +67,7 @@ if not found_rgb:
 
 config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+# config.enable_device_from_file("/home/arnis/AIMS/aitools/pose_estimation/20250210_154204.bag")
 
 # Start streaming
 pipeline.start(config)
@@ -135,7 +136,7 @@ try:
             "R z": result_poses[0][1][2],
             "Fitness": result_poses[0][2].fitness,
             "Inlier rmse": result_poses[0][2].inlier_rmse,
-            "Correspondence set size": len(result_poses[0][2].correspondence_set[0]),
+            "Correspondence set size": len(result_poses[0][2].correspondence_set),
             "Detection time": detection_time,
             "Total time": total_time
         }
