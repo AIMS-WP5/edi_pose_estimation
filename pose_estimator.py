@@ -75,14 +75,15 @@ def estimate_pose(color_img, depth_img, Kdepth, det_model, cls_idxs, sam, DOWN_S
     FITNESS_LIMIT = 0.4
     filtered_results = list(filter(lambda x: x[2].fitness > FITNESS_LIMIT, results))
 
-    return filtered_results
+    return results
 
 def estimation_setup():
     det_model = RTDETR('rtdetr-x.pt')
     cls_idxs = [id for id,name in det_model.names.items() if name in ['bottle','cup']]
     sam = SAM('mobile_sam.pt')
     DOWN_SAMPLE_SIZE = 4e-3 # downsample the point clouds to 4 mm in order to speed up ICP process
-    ref_pcd = o3d.io.read_point_cloud("./asset/madara_bottle_simplified.pcd")
+    # ref_pcd = o3d.io.read_point_cloud("./asset/madara_bottle_simplified.pcd")
+    ref_pcd = o3d.io.read_point_cloud("./utils_testing/madara_white_scaled_inverted.pcd")
     cnt = np.asarray(ref_pcd.points).shape[0]
     ref_pcd.colors = o3d.utility.Vector3dVector(np.repeat([[1,0,0]],cnt,axis = 0).astype(np.float32))
     ref_pcd = ref_pcd.voxel_down_sample(DOWN_SAMPLE_SIZE)
