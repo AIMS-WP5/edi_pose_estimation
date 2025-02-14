@@ -7,8 +7,9 @@ import csv
 import datetime
 
 # "ground truth" bottle position relative to aruco board, meters and radians
-BOARD_BOTTLE_TVEC = np.array([0.07, 0.00, 0.00])
-BOARD_BOTTLE_RVEC = np.array([0.00, np.pi, 0.0])
+BOARD_BOTTLE_TVEC = np.array([-0.037, 1.50, -0.039])
+BOARD_BOTTLE_RVEC = np.array([0.00, -np.pi/2, 0.0])
+# BOARD_BOTTLE_RVEC = np.array([np.pi/np.sqrt(2), 0.00, np.pi/np.sqrt(2)])
 
 # setup csv file for data recording/logging
 t = datetime.datetime.now()
@@ -26,8 +27,8 @@ writer.writeheader()
 # Load ArUco dictionary
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
 parameters = cv2.aruco.DetectorParameters()
-marker_length = 0.02 # m
-marker_separation = 0.01 # m
+marker_length = 0.026 # m
+marker_separation = 0.013 # m
 board = cv2.aruco.GridBoard((5,7), marker_length, marker_separation, aruco_dict)
 
 # setup for faster pose estimation
@@ -67,10 +68,16 @@ if not found_rgb:
 
 config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
 config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
-# config.enable_device_from_file("/home/arnis/AIMS/aitools/pose_estimation/20250210_154204.bag")
+# config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 6)
+# config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 6)
+# config.enable_device_from_file("/home/arnis/AIMS/aitools/pose_estimation/rs_bags/20250210_154204.bag")
 
 # Start streaming
 pipeline.start(config)
+
+# create algn object
+align_to = rs.stream.color
+align = rs.align(align_to)
 
 try:
     prev_time = time.time()
@@ -78,8 +85,9 @@ try:
 
         # Wait for both frames: depth and color
         frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        color_frame = frames.get_color_frame()
+        aligned_frames = align.process(frames)
+        depth_frame = aligned_frames.get_depth_frame()
+        color_frame = aligned_frames.get_color_frame()
         if not depth_frame or not color_frame:
             continue
 
