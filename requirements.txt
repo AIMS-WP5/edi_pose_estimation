@@ -5,3 +5,4 @@ opencv-contrib-python==4.10.0.84
 numpy==1.24.4
 rosbags==0.9.23
 pyyaml==5.4.1
+pyrealsense2==2.55.1.6486
