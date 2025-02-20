@@ -11,7 +11,7 @@ import os
 class Estimator:
     def __init__(self):
         self.det_model = RTDETR('rtdetr-x.pt')
-        self.cls_idxs = [id for id,name in det_model.names.items() if name in ['bottle','cup']]
+        self.cls_idxs = [id for id,name in self.det_model.names.items() if name in ['bottle','cup']]
         self.sam = SAM('mobile_sam.pt')
         curr_dir = os.path.dirname(os.path.abspath(__file__))
         config_path = curr_dir + "/../config/estimator.yml"
@@ -32,7 +32,7 @@ class Estimator:
         if len(det_result.boxes) == 0:
             return []
         sam_result = self.sam.predict(color_img, bboxes = det_result.boxes.xyxy)[0]
-        results = [self.estimate_pose_for_mask(pts, color_img, mask.cpu().numpy(), self.down_smaple_size, self.ref_pcd) for mask in sam_result.masks.data]
+        results = [self.estimate_pose_for_mask(pts, color_img, mask.cpu().numpy()) for mask in sam_result.masks.data]
         ## Filter the results by fitness score. Fitness ranges from 0 to 1,
         #  and shows the inlier proportion. For an object, even 0.5 can be
         #  a successful match, since the object can be seen from one side.

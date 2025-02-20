@@ -106,6 +106,9 @@ def main():
                 bottle_rvec, _ = cv2.Rodrigues(R)
                 bottle_tvec = tvec + R_board.dot(BOARD_BOTTLE_TVEC.reshape(3,1))
                 cv2.drawFrameAxes(axes_img, camera_matrix, dist_coeffs, bottle_rvec, bottle_tvec, 0.05, 2)
+            else:
+                print("Board not detected, dropping results")
+                continue
             
             # write results to log file
             curr_time = time.time()
