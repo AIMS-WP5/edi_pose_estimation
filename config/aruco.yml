@@ -1,0 +1,4 @@
+marker_length: 0.026 # m
+marker_separation: 0.013 # m
+board_to_bottle_tvec: { x: -0.037, y: 0.00, z: -0.039 } # m
+board_to_bottle_rvec: { x: 0.00, y: -1.570796, z: 0.00 } # rad

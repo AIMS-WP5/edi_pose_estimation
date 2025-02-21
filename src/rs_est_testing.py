@@ -6,6 +6,7 @@ import estimator
 import csv
 import datetime
 import os
+import yaml
 
 def main():
     ## setup csv file for data recording/logging
@@ -24,14 +25,21 @@ def main():
     writer.writeheader()
 
     ## ArUco setup
+    aruco_config_path = curr_dir + "/../config/aruco.yml"
+    with open(aruco_config_path, "r") as config_file:
+        aruco_config = yaml.safe_load(config_file)
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
     parameters = cv2.aruco.DetectorParameters()
-    marker_length = 0.026 # m
-    marker_separation = 0.013 # m
+    marker_length = aruco_config["marker_length"] # m
+    marker_separation = aruco_config["marker_separation"] # m
     board = cv2.aruco.GridBoard((5,7), marker_length, marker_separation, aruco_dict)
     # "ground truth" bottle position relative to aruco board, meters and radians
-    BOARD_BOTTLE_TVEC = np.array([-0.037, 1.50, -0.039])
-    BOARD_BOTTLE_RVEC = np.array([0.00, -np.pi/2, 0.0])
+    offset_tvec_dict = aruco_config["board_to_bottle_tvec"]
+    offset_rvec_dict = aruco_config["board_to_bottle_rvec"]
+    BOARD_BOTTLE_TVEC = np.array([offset_tvec_dict['x'], offset_tvec_dict['y'], offset_tvec_dict['z']])
+    BOARD_BOTTLE_RVEC = np.array([offset_rvec_dict['x'], offset_rvec_dict['y'], offset_rvec_dict['z']])
+    # BOARD_BOTTLE_TVEC = np.array([-0.037, 1.50, -0.039])
+    # BOARD_BOTTLE_RVEC = np.array([0.00, -np.pi/2, 0.0])
     # BOARD_BOTTLE_RVEC = np.array([np.pi/np.sqrt(2), 0.00, np.pi/np.sqrt(2)])
 
     ## estimator setup
