@@ -11,6 +11,7 @@ import subprocess
 import open3d as o3d
 
 record_log = False
+use_aruco = True
 
 def main():
     if record_log:
@@ -28,24 +29,26 @@ def main():
         ]
         writer = csv.DictWriter(log_file, fieldnames=field_names)
         writer.writeheader()
+        use_aruco = True # otherwise true pose cannot be determined
 
-    ## ArUco setup
-    aruco_config_path = curr_dir + "/../config/aruco.yml"
-    with open(aruco_config_path, "r") as config_file:
-        aruco_config = yaml.safe_load(config_file)
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters()
-    marker_length = aruco_config["marker_length"] # m
-    marker_separation = aruco_config["marker_separation"] # m
-    board = cv2.aruco.GridBoard((5,7), marker_length, marker_separation, aruco_dict)
-    # "ground truth" bottle position relative to aruco board, meters and radians
-    offset_tvec_dict = aruco_config["board_to_bottle_tvec"]
-    offset_rvec_dict = aruco_config["board_to_bottle_rvec"]
-    BOARD_BOTTLE_TVEC = np.array([offset_tvec_dict['x'], offset_tvec_dict['y'], offset_tvec_dict['z']])
-    BOARD_BOTTLE_RVEC = np.array([offset_rvec_dict['x'], offset_rvec_dict['y'], offset_rvec_dict['z']])
-    # BOARD_BOTTLE_TVEC = np.array([-0.037, 1.50, -0.039])
-    # BOARD_BOTTLE_RVEC = np.array([0.00, -np.pi/2, 0.0])
-    # BOARD_BOTTLE_RVEC = np.array([np.pi/np.sqrt(2), 0.00, np.pi/np.sqrt(2)])
+    if use_aruco:
+        ## ArUco setup
+        aruco_config_path = curr_dir + "/../config/aruco.yml"
+        with open(aruco_config_path, "r") as config_file:
+            aruco_config = yaml.safe_load(config_file)
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+        parameters = cv2.aruco.DetectorParameters()
+        marker_length = aruco_config["marker_length"] # m
+        marker_separation = aruco_config["marker_separation"] # m
+        board = cv2.aruco.GridBoard((5,7), marker_length, marker_separation, aruco_dict)
+        # "ground truth" bottle position relative to aruco board, meters and radians
+        offset_tvec_dict = aruco_config["board_to_bottle_tvec"]
+        offset_rvec_dict = aruco_config["board_to_bottle_rvec"]
+        BOARD_BOTTLE_TVEC = np.array([offset_tvec_dict['x'], offset_tvec_dict['y'], offset_tvec_dict['z']])
+        BOARD_BOTTLE_RVEC = np.array([offset_rvec_dict['x'], offset_rvec_dict['y'], offset_rvec_dict['z']])
+        # BOARD_BOTTLE_TVEC = np.array([-0.037, 1.50, -0.039])
+        # BOARD_BOTTLE_RVEC = np.array([0.00, -np.pi/2, 0.0])
+        # BOARD_BOTTLE_RVEC = np.array([np.pi/np.sqrt(2), 0.00, np.pi/np.sqrt(2)])
 
     ## estimator setup
     sam_seg_estimator = estimator.Estimator()
@@ -106,25 +109,26 @@ def main():
             for pose in result_poses:
                 cv2.drawFrameAxes(axes_img, camera_matrix, dist_coeffs, pose[1], pose[0], 0.05, 1)
 
-            # detect board position
-            gray = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
-            corners, ids, rejected = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-            corners, ids, rejected, recovered_ids = cv2.aruco.refineDetectedMarkers(gray, board, corners, ids, rejected, camera_matrix, dist_coeffs)
-            rvec = None
-            tvec = None
-            if ids is not None:
-                retval, rvec, tvec = cv2.aruco.estimatePoseBoard(
-                    corners, ids, board, camera_matrix, dist_coeffs, rvec, tvec, False
-                )
-                R_board, _ = cv2.Rodrigues(rvec)
-                R_bottle, _ = cv2.Rodrigues(BOARD_BOTTLE_RVEC)
-                R = R_board.dot(R_bottle)
-                bottle_rvec, _ = cv2.Rodrigues(R)
-                bottle_tvec = tvec + R_board.dot(BOARD_BOTTLE_TVEC.reshape(3,1))
-                cv2.drawFrameAxes(axes_img, camera_matrix, dist_coeffs, bottle_rvec, bottle_tvec, 0.05, 2)
-            else:
-                print("Board not detected, dropping results")
-                continue
+            if use_aruco:
+                # detect board position
+                gray = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
+                corners, ids, rejected = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+                corners, ids, rejected, recovered_ids = cv2.aruco.refineDetectedMarkers(gray, board, corners, ids, rejected, camera_matrix, dist_coeffs)
+                rvec = None
+                tvec = None
+                if ids is not None:
+                    retval, rvec, tvec = cv2.aruco.estimatePoseBoard(
+                        corners, ids, board, camera_matrix, dist_coeffs, rvec, tvec, False
+                    )
+                    R_board, _ = cv2.Rodrigues(rvec)
+                    R_bottle, _ = cv2.Rodrigues(BOARD_BOTTLE_RVEC)
+                    R = R_board.dot(R_bottle)
+                    bottle_rvec, _ = cv2.Rodrigues(R)
+                    bottle_tvec = tvec + R_board.dot(BOARD_BOTTLE_TVEC.reshape(3,1))
+                    cv2.drawFrameAxes(axes_img, camera_matrix, dist_coeffs, bottle_rvec, bottle_tvec, 0.05, 2)
+                else:
+                    print("Board not detected, dropping results")
+                    continue
             
             # write results to log file
             curr_time = time.time()
