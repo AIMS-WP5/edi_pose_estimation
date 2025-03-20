@@ -7,22 +7,27 @@ import csv
 import datetime
 import os
 import yaml
+import subprocess
+import open3d as o3d
+
+record_log = False
 
 def main():
-    ## setup csv file for data recording/logging
-    t = datetime.datetime.now()
-    timestamp = f"{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
-    curr_dir = os.path.dirname(os.path.abspath(__file__))
-    log_file_path = curr_dir + f"/../testing/{timestamp}.csv"
-    log_file = open(log_file_path, "w", newline="")
-    field_names = [
-        "True T x", "True T y", "True T z", "True R x", "True R y", "True R z", 
-        "T x", "T y", "T z", "R x", "R y", "R z", 
-        "Fitness", "Inlier rmse", "Correspondence set size", 
-        "Detection time", "Total time"
-    ]
-    writer = csv.DictWriter(log_file, fieldnames=field_names)
-    writer.writeheader()
+    if record_log:
+        ## setup csv file for data recording/logging
+        t = datetime.datetime.now()
+        timestamp = f"{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
+        curr_dir = os.path.dirname(os.path.abspath(__file__))
+        log_file_path = curr_dir + f"/../testing/{timestamp}.csv"
+        log_file = open(log_file_path, "w", newline="")
+        field_names = [
+            "True T x", "True T y", "True T z", "True R x", "True R y", "True R z", 
+            "T x", "T y", "T z", "R x", "R y", "R z", 
+            "Fitness", "Inlier rmse", "Correspondence set size", 
+            "Detection time", "Total time"
+        ]
+        writer = csv.DictWriter(log_file, fieldnames=field_names)
+        writer.writeheader()
 
     ## ArUco setup
     aruco_config_path = curr_dir + "/../config/aruco.yml"
@@ -88,6 +93,9 @@ def main():
             depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
 
+            # cv2.imwrite("./utils_testing/color.png", color_image)
+            # cv2.imwrite("./utils_testing/depth.png", depth_image)
+
             detection_start = time.time()
             result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix)
             detection_time = time.time() - detection_start
@@ -122,36 +130,52 @@ def main():
             curr_time = time.time()
             total_time = curr_time - prev_time
             prev_time = curr_time
-            row = {
-                "True T x": bottle_tvec[0][0],
-                "True T y": bottle_tvec[1][0],
-                "True T z": bottle_tvec[2][0],
-                "True R x": bottle_rvec[0][0],
-                "True R y": bottle_rvec[1][0],
-                "True R z": bottle_rvec[2][0],
-                "T x": result_poses[0][0][0],
-                "T y": result_poses[0][0][1],
-                "T z": result_poses[0][0][2],
-                "R x": result_poses[0][1][0],
-                "R y": result_poses[0][1][1],
-                "R z": result_poses[0][1][2],
-                "Fitness": result_poses[0][2].fitness,
-                "Inlier rmse": result_poses[0][2].inlier_rmse,
-                "Correspondence set size": len(result_poses[0][2].correspondence_set),
-                "Detection time": detection_time,
-                "Total time": total_time
-            }
-            writer.writerow(row)
+            if record_log:
+                row = {
+                    "True T x": bottle_tvec[0][0],
+                    "True T y": bottle_tvec[1][0],
+                    "True T z": bottle_tvec[2][0],
+                    "True R x": bottle_rvec[0][0],
+                    "True R y": bottle_rvec[1][0],
+                    "True R z": bottle_rvec[2][0],
+                    "T x": result_poses[0][0][0],
+                    "T y": result_poses[0][0][1],
+                    "T z": result_poses[0][0][2],
+                    "R x": result_poses[0][1][0],
+                    "R y": result_poses[0][1][1],
+                    "R z": result_poses[0][1][2],
+                    "Fitness": result_poses[0][2].fitness,
+                    "Inlier rmse": result_poses[0][2].inlier_rmse,
+                    "Correspondence set size": len(result_poses[0][2].correspondence_set),
+                    "Detection time": detection_time,
+                    "Total time": total_time
+                }
+                writer.writerow(row)
+
+            # grasp pose estimation
+            est_pose_tvec = np.array(result_poses[0][0])
+            est_pose_tvec *= -1
+            pts = cv2.rgbd.depthTo3d(depth_image, camera_matrix)
+            verts = pts.reshape((-1,3))
+            idx = ~np.isnan(verts).any(axis=1)
+            verts = verts[idx,:]
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(verts)
+            pcd = pcd.translate(est_pose_tvec)
+            o3d.io.write_point_cloud("/home/arnis/AIMS/aitools/pose_estimation/testing/depth.pcd", pcd)
+            subprocess.run(["/home/arnis/gpd/build/detect_grasps", "/home/arnis/gpd/cfg/eigen_params.cfg", "/home/arnis/AIMS/aitools/pose_estimation/testing/depth.pcd", str(est_pose_tvec[0]), str(est_pose_tvec[1]), str(est_pose_tvec[2])])
 
             cv2.imshow("Pose estimation", axes_img)
             # Exit on 'q' key
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            # time.sleep(0.1)
+            print("Waiting 5s...")
+            time.sleep(5)
     finally:
         pipeline.stop()
         cv2.destroyAllWindows()
-        log_file.close()
+        if record_log:
+            log_file.close()
 
 
 if __name__ == '__main__':
