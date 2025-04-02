@@ -156,9 +156,10 @@ def main():
                 }
                 writer.writerow(row)
 
-            # grasp pose estimation
+            ## grasp pose estimation
+            # shift point cloud origin to estimated pose
             est_pose_tvec = np.array(result_poses[0][0])
-            est_pose_tvec *= -1
+            est_pose_tvec *= -1 # bc we need camera pose relative to detected pose
             pts = cv2.rgbd.depthTo3d(depth_image, camera_matrix)
             verts = pts.reshape((-1,3))
             idx = ~np.isnan(verts).any(axis=1)
@@ -166,7 +167,7 @@ def main():
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(verts)
             pcd = pcd.translate(est_pose_tvec)
-            o3d.io.write_point_cloud("/home/arnis/AIMS/aitools/pose_estimation/testing/depth.pcd", pcd)
+            o3d.io.write_point_cloud("/home/arnis/AIMS/aitools/pose_estimation/testing/depth.pcd", pcd) # detect_grasps takes path to pcd file
             subprocess.run(["/home/arnis/gpd/build/detect_grasps", "/home/arnis/gpd/cfg/eigen_params.cfg", "/home/arnis/AIMS/aitools/pose_estimation/testing/depth.pcd", str(est_pose_tvec[0]), str(est_pose_tvec[1]), str(est_pose_tvec[2])])
 
             cv2.imshow("Pose estimation", axes_img)
