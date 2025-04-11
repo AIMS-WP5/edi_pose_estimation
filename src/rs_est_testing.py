@@ -7,13 +7,19 @@ import csv
 import datetime
 import os
 import yaml
-import subprocess
 import open3d as o3d
+import rclpy
+from rclpy.node import Node
+from geometry_msgs.msg import Pose
+import scipy
 
-record_log = False
-use_aruco = True
 
 def main():
+    node = rclpy.create_node("realsense_pose_estimation")
+    pose_pub = Node.create_publisher(node, Pose, "/bottle_pose", 10)
+
+    record_log = False
+    use_aruco = False
     if record_log:
         ## setup csv file for data recording/logging
         t = datetime.datetime.now()
@@ -156,26 +162,40 @@ def main():
                 }
                 writer.writerow(row)
 
-            ## grasp pose estimation
-            # shift point cloud origin to estimated pose
+            # write a shifted pcd file for grasp pose estimation
+            # estimated pose coordinates is the new origin point
             est_pose_tvec = np.array(result_poses[0][0])
-            est_pose_tvec *= -1 # bc we need camera pose relative to detected pose
+            shift_vec = -1 * est_pose_tvec
             pts = cv2.rgbd.depthTo3d(depth_image, camera_matrix)
             verts = pts.reshape((-1,3))
             idx = ~np.isnan(verts).any(axis=1)
             verts = verts[idx,:]
             pcd = o3d.geometry.PointCloud()
             pcd.points = o3d.utility.Vector3dVector(verts)
-            pcd = pcd.translate(est_pose_tvec)
-            o3d.io.write_point_cloud("/home/arnis/AIMS/aitools/pose_estimation/testing/depth.pcd", pcd) # detect_grasps takes path to pcd file
-            subprocess.run(["/home/arnis/gpd/build/detect_grasps", "/home/arnis/gpd/cfg/eigen_params.cfg", "/home/arnis/AIMS/aitools/pose_estimation/testing/depth.pcd", str(est_pose_tvec[0]), str(est_pose_tvec[1]), str(est_pose_tvec[2])])
+            pcd = pcd.translate(shift_vec)
+            pcd_file_path = "/home/arnis/aitools/pose_estimation/tmp/depth.pcd" # todo: make a config param
+            o3d.io.write_point_cloud(pcd_file_path, pcd)
+
+            # convert rotation vector to quaternion
+            est_pose_rvec = np.array(result_poses[0][1])
+            est_pose_rmat, _ = cv2.Rodrigues(est_pose_rvec)
+            est_pose_quat = scipy.spatial.transform.Rotation.from_matrix(est_pose_rmat).as_quat() # [x y z w]
+
+            # publish ros msg with estimated pose
+            pose_msg = Pose()
+            pose_msg.position.x = result_poses[0][0][0]
+            pose_msg.position.y = result_poses[0][0][1]
+            pose_msg.position.z = result_poses[0][0][2]
+            pose_msg.orientation.x = est_pose_quat[0]
+            pose_msg.orientation.y = est_pose_quat[1]
+            pose_msg.orientation.z = est_pose_quat[2]
+            pose_msg.orientation.w = est_pose_quat[3]
+            pose_pub.publish(pose_msg)
 
             cv2.imshow("Pose estimation", axes_img)
             # Exit on 'q' key
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
-            print("Waiting 5s...")
-            time.sleep(5)
     finally:
         pipeline.stop()
         cv2.destroyAllWindows()
@@ -184,4 +204,6 @@ def main():
 
 
 if __name__ == '__main__':
+    rclpy.init()
     main()
+    rclpy.shutdown()
