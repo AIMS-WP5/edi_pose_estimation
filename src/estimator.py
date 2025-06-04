@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import open3d as o3d
@@ -25,13 +24,17 @@ class Estimator:
         self.ref_pcd = ref_pcd.voxel_down_sample(self.down_smaple_size)
         self.fitness_limit = config["fitness_limit"]
 
-    def estimate(self, color_img, depth_img, camera_matrix):
+    def estimate(self, color_img, depth_img, camera_matrix, do_viz):
         pts = cv2.rgbd.depthTo3d(depth_img, camera_matrix)
         results = self.det_model(color_img, classes = self.cls_idxs)
         det_result = results[0]
         if len(det_result.boxes) == 0:
             return []
         sam_result = self.sam.predict(color_img, bboxes = det_result.boxes.xyxy)[0]
+        if do_viz:
+            sam_rez_img = np.array(sam_result.plot())
+            cv2.imshow("SAM result", sam_rez_img)
+            cv2.waitKey()
         results = [self.estimate_pose_for_mask(pts, color_img, mask.cpu().numpy()) for mask in sam_result.masks.data]
         ## Filter the results by fitness score. Fitness ranges from 0 to 1,
         #  and shows the inlier proportion. For an object, even 0.5 can be
