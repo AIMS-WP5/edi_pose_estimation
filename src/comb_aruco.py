@@ -7,6 +7,33 @@ import pyrealsense2 as rs
 import math
 
 
+def avg_rotation(rvecs):
+    """
+    Compute the average rotation from a list of Rodrigues rotation vectors.
+
+    Parameters:
+    - rvecs: np.ndarray of shape (N, 3), where each row is a Rodrigues rotation vector.
+
+    Returns:
+    - avg_rvec: np.ndarray of shape (3,), the average Rodrigues rotation vector.
+    """
+
+    # Step 1: Convert all Rodrigues vectors to rotation matrices
+    R_matrices = [cv2.Rodrigues(rvec)[0] for rvec in rvecs]
+
+    # Step 2: Average the rotation matrices
+    R_stack = np.stack(R_matrices)
+    R_avg = np.mean(R_stack, axis=0)
+
+    # Step 3: Re-orthonormalize the averaged matrix using SVD
+    U, _, Vt = np.linalg.svd(R_avg)
+    R_avg_ortho = U @ Vt
+
+    # Step 4: Convert the averaged rotation matrix back to a Rodrigues vector
+    avg_rvec, _ = cv2.Rodrigues(R_avg_ortho)
+    return avg_rvec.ravel()
+
+
 def get_transform_depth2col(depth_rvec, depth_tvec, col_rvec, col_tvec):
     '''
     rvecs and tvecs are transforms **of an aruco board** position in
@@ -344,12 +371,13 @@ def main():
 
             print(f"Blaze:\nR:{blaze_bottle_rvec}\nT:{blaze_bottle_tvec}")
             print(f"RealSense:\nR:{rs_bottle_rvec}\nT:{rs_bottle_tvec}")
-            rvec, tvec = get_transform_depth2col(blaze_bottle_rvec, blaze_bottle_tvec, rs_bottle_rvec, rs_bottle_tvec)
-            R, _ = cv2.Rodrigues(rvec)
-            T = np.array([tvec[0][0], tvec[1][0], tvec[2][0]])
-            print(f"Result:\nR: {rvec}\nT: {tvec}")
-            num_samples += 1
-            res_arr.append([rvec, tvec])
+            if cv2.waitKey(5) & 0xFF == ord('s'):
+                rvec, tvec = get_transform_depth2col(blaze_bottle_rvec, blaze_bottle_tvec, rs_bottle_rvec, rs_bottle_tvec)
+                R, _ = cv2.Rodrigues(rvec)
+                T = np.array([tvec[0][0], tvec[1][0], tvec[2][0]])
+                print(f"Result:\nR: {rvec}\nT: {tvec}")
+                num_samples += 1
+                res_arr.append([rvec, tvec])
 
             cv2.imshow("Blaze pose estimation", axes_img_blaze)
             cv2.imshow("RealSense pose estimation", axes_img_rs)
@@ -380,9 +408,9 @@ def main():
     pipeline.stop()
     print("Avg results")
     res_arr = np.array(res_arr)
-    print(np.average(res_arr[:,0,0]))
-    print(np.average(res_arr[:,0,1]))
-    print(np.average(res_arr[:,0,2]))
+    print(res_arr[:, 0].shape)
+    print(avg_rotation(res_arr[:,0]))
+    # avg translation
     print(np.average(res_arr[:,1,0]))
     print(np.average(res_arr[:,1,1]))
     print(np.average(res_arr[:,1,2]))
