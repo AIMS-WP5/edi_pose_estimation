@@ -4,15 +4,20 @@ import cv2
 import pyrealsense2 as rs
 import math
 
+# rvec = np.array([
+#     [-0.02942914],
+#     [-0.02656359],
+#     [0.03366882]
+# ])
 rvec = np.array([
     [0.0],
     [0.0],
     [0.0]
 ])
 tvec = np.array([
-    [0.13414713556096586],
-    [0.07534657645043326],
-    [-0.006863924119073682]
+    [0.157],
+    [0.088],
+    [-0.002]
 ])
 
 
@@ -66,8 +71,9 @@ def align_depth_to_color(depth_image, color_image, K_depth, K_color, R, T, depth
 
             # assign the color and put depth info into that pixel coordinate
             if x_col_idx >= 0 and x_col_idx < width and y_col_idx >= 0 and y_col_idx < height:
+                if aligned_depth[y_col_idx, x_col_idx] != 0 and aligned_depth[y_col_idx, x_col_idx] <= depth_image[v, u]:
+                    continue
                 aligned_point_colors[v, u] = color_image[y_col_idx, x_col_idx]
-
                 aligned_depth[y_col_idx, x_col_idx] = depth_image[v, u]
     
     # print(len(aligned_points.reshape((-1,3))))
@@ -163,6 +169,7 @@ def main():
         [fx, 0.0, cx],
         [0.0, fy, cy],
         [0.0, 0.0, 1.0]])
+    print("Blaze camera matrix:\n", blaze_camera_matrix)
     gray2mm = float(camera.Scan3dCoordinateScale.GetValue())
 
     ## camera setup
@@ -183,7 +190,7 @@ def main():
         [fx, axs, ppx],
         [0.0, fy, ppy],
         [0.0, 0.0, 1.0]])
-    # print("Camera matrix:", camera_matrix)
+    print("RealSense camera matrix:\n", rs_camera_matrix)
     dist_coeffs = np.asanyarray(intr.coeffs)
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
@@ -284,8 +291,9 @@ def main():
             )
             aligned_scaled = aligned_image * 255.0 / camera.DepthMax.Value
             cv2.imshow("Blaze aligned depth", aligned_scaled.astype(np.uint8))
-            #     cv2.imwrite("/home/arnis/aitools/pose_estimation/tmp/comb_aligned.png", aligned_image)
-            #     cv2.imwrite("/home/arnis/aitools/pose_estimation/tmp/comb_color.png", rs_color_image)
+            # cv2.imwrite("/home/arnis/aitools/pose_estimation/tmp/comb_aligned.png", aligned_image)
+            # cv2.imwrite("/home/arnis/aitools/pose_estimation/tmp/comb_color.png", rs_color_image)
+            # cv2.imwrite("/home/arnis/aitools/pose_estimation/tmp/comb_rs_depth.png", rs_depth_image)
 
         grabResult.Release()
 
