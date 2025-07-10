@@ -19,10 +19,12 @@ pip install -r requirements.txt
 Before running, modify config files in the `config` directory with the appropriate file paths or transformations.
 
 To run object detection with a RealSense camera:  
-`cd src`
-`python3 rs_est.py`
+```
+cd src
+python3 rs_est.py
+```
 
-With Basler Blaze camera:
+With Basler Blaze camera:  
 `python3 blaze_est.py`  
 For color frames this uses "intensity" images obtained from the Blaze camera.
 
@@ -31,10 +33,11 @@ For color frames this uses "intensity" images obtained from the Blaze camera.
 Testing was done by putting a bottle in a fixed position relative to an ArUco board 
 and comparing this "ground truth" position with the estimated pose.
 
-These scripts include:
+These scripts include:  
 `comb_align_testing.py` (requires precise transform between color and depth camera defined in code)  
 `rs_est_testing.py`  
 `zivid_est_testing.py`  
+and others
 
 ### Util dir
 
