@@ -29,6 +29,9 @@ try:
 
     prev_val = camera.Scan3dDistortionCoefficientSelector.Value
     print("prev val:", prev_val)
+    z_offset = camera.ZOffsetOriginToCameraFront.Value
+    print("Z offset:", z_offset)
+    print("in mm:", gray2mm * z_offset)
     # values = ["k1", "k2", "p1", "p2", "k3"]
     # for idx in range(4):
     #     # error thrown if value not available
