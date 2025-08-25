@@ -47,6 +47,8 @@ def main():
     # Start streaming
     pipeline.start(config)
 
+    depth_scale = pipeline.get_active_profile().get_device().first_depth_sensor().get_depth_scale()
+
     try:
         while True:
             # Exit on 'q' key
@@ -62,6 +64,7 @@ def main():
                 continue
             depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
+            depth_image = depth_scale * depth_image # convert to m
 
             if do_viz:
                 pts = cv2.rgbd.depthTo3d(depth_image, camera_matrix)
