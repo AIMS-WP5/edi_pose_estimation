@@ -18,13 +18,14 @@ def main():
     node = rclpy.create_node("realsense_pose_estimation")
     pose_pub = Node.create_publisher(node, Pose, "/bottle_pose", 10)
 
-    record_log = False
-    use_aruco = False
+    record_log = True
+    use_aruco = True
+    do_viz = False
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
     if record_log:
         ## setup csv file for data recording/logging
         t = datetime.datetime.now()
         timestamp = f"{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
-        curr_dir = os.path.dirname(os.path.abspath(__file__))
         log_file_path = curr_dir + f"/../testing/{timestamp}.csv"
         log_file = open(log_file_path, "w", newline="")
         field_names = [
@@ -77,6 +78,7 @@ def main():
         [fx, axs, ppx],
         [0.0, fy, ppy],
         [0.0, 0.0, 1.0]])
+    # print("Camera matrix:", camera_matrix)
     dist_coeffs = np.asanyarray(intr.coeffs)
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
@@ -88,6 +90,7 @@ def main():
     align = rs.align(align_to)
     # Start streaming
     pipeline.start(config)
+    depth_scale = pipeline.get_active_profile().get_device().first_depth_sensor().get_depth_scale()
 
     try:
         prev_time = time.time()
@@ -100,13 +103,14 @@ def main():
             if not depth_frame or not color_frame:
                 continue
             depth_image = np.asanyarray(depth_frame.get_data())
+            depth_image = depth_scale * depth_image # convert to m
             color_image = np.asanyarray(color_frame.get_data())
 
-            # cv2.imwrite("./utils_testing/color.png", color_image)
-            # cv2.imwrite("./utils_testing/depth.png", depth_image)
+            # cv2.imwrite("/home/arnis/aitools/pose_estimation/tmp/realsense_color.png", color_image)
+            # cv2.imwrite("/home/arnis/aitools/pose_estimation/tmp/realsense_depth.png", depth_image)
 
             detection_start = time.time()
-            result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix)
+            result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix, do_viz)
             detection_time = time.time() - detection_start
             print("Detected poses:",result_poses)
             if result_poses == []:
