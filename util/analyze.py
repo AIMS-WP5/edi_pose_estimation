@@ -16,7 +16,7 @@ with open(file_path, "r", newline="") as file:
     rows = [row for row in reader]
 
     new_file_path = file_path.split(".csv")[0] + "_m.csv"
-    new_filed_names = field_names + ["cos", "pose error"]
+    new_filed_names = field_names + ["cos", "angle error", "pose error"]
     with open(new_file_path, "w", newline="") as outfile:
         writer = csv.DictWriter(outfile, new_filed_names)
         writer.writeheader()
@@ -39,7 +39,7 @@ with open(file_path, "r", newline="") as file:
             z_est = R_est[:, 2]
             cos_phi = (np.dot(z_true, z_est)) / (np.linalg.norm(z_true) * np.linalg.norm(z_est))
             row["cos"] = cos_phi
-
+            row["angle error"] = np.rad2deg(np.arccos(cos_phi))
             tvec_true = np.array(
                 [row["True T x"],
                 row["True T y"],
