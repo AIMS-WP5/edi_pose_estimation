@@ -41,7 +41,7 @@ def main():
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
     # create align object
-    align_to = rs.stream.color
+    align_to = rs.stream.color # rs.stream.infrared for d405
     align = rs.align(align_to)
     # Start streaming
     pipeline.start(config)
@@ -62,18 +62,6 @@ def main():
 
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
             o3d_color, o3d_depth, depth_scale=1/depth_scale, convert_rgb_to_intensity=False)
-
-        pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-            rgbd, pinhole_camera_intrinsic, extrinsic)
-
-        return pcd
-
-    def convert_np_frames_to_pointcloud(np_depth, np_color):
-        o3d_depth = o3d.geometry.Image(np_depth)
-        o3d_color = o3d.geometry.Image(np_color)
-
-        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
-            o3d_color, o3d_depth, depth_scale, convert_rgb_to_intensity=False)
 
         pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
             rgbd, pinhole_camera_intrinsic, extrinsic)
@@ -120,7 +108,7 @@ def main():
             color_image = np.asanyarray(color_frame.get_data())
             depth_image = depth_scale * depth_image # convert to m
 
-            result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix, False)
+            result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix, True)
             print("Detected poses:",result_poses)
             if result_poses == []:
                 cv2.imshow("Pose estimation", color_image)
