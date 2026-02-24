@@ -1,7 +1,7 @@
 import pyrealsense2 as rs
 import numpy as np
 import cv2
-import estimator
+import estimator1 as estimator
 import open3d as o3d
 import rclpy
 from rclpy.node import Node
@@ -41,12 +41,13 @@ def main():
     config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
     # create align object
-    align_to = rs.stream.color # rs.stream.infrared for d405
+    align_to = rs.stream.infrared # for d405, for other cameras use rs.stream.color
     align = rs.align(align_to)
     # Start streaming
     pipeline.start(config)
 
     depth_scale = pipeline.get_active_profile().get_device().first_depth_sensor().get_depth_scale()
+    print("Depth scale:", depth_scale)
 
 
     def convert_rs_frames_to_pointcloud(rs_frames):
