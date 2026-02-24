@@ -2,6 +2,7 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 import estimator1 as estimator
+import rotation_seg_fill
 import open3d as o3d
 import rclpy
 from rclpy.node import Node
@@ -14,7 +15,8 @@ def main():
     pose_pub = Node.create_publisher(node, Pose, "/bottle_pose", 10)
 
     ## estimator setup
-    sam_seg_estimator = estimator.Estimator()
+    # sam_seg_estimator = estimator.Estimator()
+    sam_seg_estimator = rotation_seg_fill.SAMSegmentEstimator()
 
     ## camera setup
     pipeline = rs.pipeline()
@@ -107,9 +109,15 @@ def main():
                 continue
             depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
-            depth_image = depth_scale * depth_image # convert to m
+            # depth_image = depth_scale * depth_image # convert to m
 
-            result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix, True)
+            # result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix, True)
+            est_result = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix)
+            result_poses = []
+            if est_result != None:
+                # print(est_result["pose"])
+                pose = est_result["pose"] # TODO: need to convert to correct format
+                result_poses.append(pose)
             print("Detected poses:",result_poses)
             if result_poses == []:
                 cv2.imshow("Pose estimation", color_image)
