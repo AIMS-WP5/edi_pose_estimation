@@ -109,15 +109,13 @@ def main():
                 continue
             depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
-            # depth_image = depth_scale * depth_image # convert to m
+            depth_image = depth_scale * depth_image # convert to m
 
             # result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix, True)
             est_result = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix)
             result_poses = []
             if est_result != None:
-                # print(est_result["pose"])
-                pose = est_result["pose"] # TODO: need to convert to correct format
-                result_poses.append(pose)
+                result_poses.append(est_result)
             print("Detected poses:",result_poses)
             if result_poses == []:
                 cv2.imshow("Pose estimation", color_image)

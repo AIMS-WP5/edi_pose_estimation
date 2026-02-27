@@ -45,7 +45,7 @@ class SAMSegmentEstimator:
         # --- CAD / mesh reference ---
         self.model_path = config.get(
             'model_path',
-            config.get('model_pcd', "/home/arnis/aims/python_env/edi_pose_estimation/asset/madara_white.obj")
+            config.get('model_pcd', "/home/arnis/aims/python_env/edi_pose_estimation/asset/madara_white_scaled.obj")
         )
         if not self.model_path:
             raise ValueError(
@@ -1728,17 +1728,22 @@ class SAMSegmentEstimator:
             K,
         )
 
-        return {
-            "pose": best_reg.transformation,
-            "fitness": best_reg.fitness,
-            "proj_iou": best_proj_iou,
-            "mask_neck_px": best_mask_neck_px,
-            "proj_neck_px": self._project_ref_neck_point(best_reg.transformation, K, best_mask.shape),
-            "pre_refine_pose": pre_refine_pose,
-            "refine_yaw_deg": refine_yaw_deg,
-            "refine_dx": refine_dx,
-            "refine_dy": refine_dy,
-            "refine_dz": refine_dz,
-            "completed_cloud": completed_cloud,
-            "mask": best_mask
-        }
+        tvec = best_reg.transformation[0:3,3]
+        rvec,_ = cv2.Rodrigues(best_reg.transformation[0:3,0:3])
+        rvec = rvec.T[0,:]
+        return tvec,rvec,best_reg
+
+        # return {
+        #     "pose": best_reg.transformation,
+        #     "fitness": best_reg.fitness,
+        #     "proj_iou": best_proj_iou,
+        #     "mask_neck_px": best_mask_neck_px,
+        #     "proj_neck_px": self._project_ref_neck_point(best_reg.transformation, K, best_mask.shape),
+        #     "pre_refine_pose": pre_refine_pose,
+        #     "refine_yaw_deg": refine_yaw_deg,
+        #     "refine_dx": refine_dx,
+        #     "refine_dy": refine_dy,
+        #     "refine_dz": refine_dz,
+        #     "completed_cloud": completed_cloud,
+        #     "mask": best_mask
+        # }
