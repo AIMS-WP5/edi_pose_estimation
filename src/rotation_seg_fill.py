@@ -18,10 +18,10 @@ class SAMSegmentEstimator:
             config = yaml.safe_load(config_file)
         ref_pdc_path = config["ref_pcd_path"] # must be absolute path
         self.down_smaple_size = config["down_sample_size"]
-        ref_pcd = o3d.io.read_point_cloud(ref_pdc_path)
-        cnt = np.asarray(ref_pcd.points).shape[0]
-        ref_pcd.colors = o3d.utility.Vector3dVector(np.repeat([[1,0,0]],cnt,axis = 0).astype(np.float32))
-        self.ref_pcd = ref_pcd.voxel_down_sample(self.down_smaple_size)
+        ref_pcd_bottle = o3d.io.read_point_cloud(ref_pdc_path)
+        cnt = np.asarray(ref_pcd_bottle.points).shape[0]
+        ref_pcd_bottle.colors = o3d.utility.Vector3dVector(np.repeat([[1,0,0]],cnt,axis = 0).astype(np.float32))
+        self.ref_pcd_bottle = ref_pcd_bottle.voxel_down_sample(self.down_smaple_size)
 
         # --- models ---
         self.seg_model_type = str(config.get("seg_model_type", "yolo")).lower()
@@ -45,7 +45,7 @@ class SAMSegmentEstimator:
         # --- CAD / mesh reference ---
         self.model_path = config.get(
             'model_path',
-            config.get('model_pcd', "/home/arnis/aims/python_env/edi_pose_estimation/asset/madara_white_scaled.obj")
+            config.get('model_pcd', "/home/arnis/aims/python_env/edi_pose_estimation/asset/madara_white.obj")
         )
         if not self.model_path:
             raise ValueError(
@@ -58,8 +58,8 @@ class SAMSegmentEstimator:
         self.icp_coarse_dist = float(config.get("icp_coarse_dist", 70.0))
         self.icp_fine_dist = float(config.get("icp_fine_dist", 20.0))
         self.icp_iters = int(config.get("icp_iterations", 120))
-        self.min_points_for_pose = int(config.get("min_points_for_pose", 40))
-        self.min_fitness = float(config.get("min_fitness", 0.05))
+        self.min_points_for_pose = int(config.get("min_points_for_pose", 10))
+        self.min_fitness = float(config.get("min_fitness", 0.01))
         self.max_rmse = float(config.get("max_rmse", 30.0))
         self.init_yaw_steps = int(config.get("init_yaw_steps", 8))
         self.init_roll_steps = int(config.get("init_roll_steps", 6))

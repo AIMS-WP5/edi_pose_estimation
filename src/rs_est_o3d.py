@@ -24,7 +24,7 @@ def main():
     pipeline_wrapper = rs.pipeline_wrapper(pipeline)
     pipeline_profile = config.resolve(pipeline_wrapper)
     # Get intrinsic matrix of camera
-    intr = pipeline_profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
+    intr = pipeline_profile.get_stream(rs.stream.depth).as_video_stream_profile().get_intrinsics()
     fx = float(intr.fx) # Focal length of x
     fy = float(intr.fy) # Focal length of y
     ppx = float(intr.ppx) # Principle Point Offsey of x (aka. cx)
@@ -34,7 +34,7 @@ def main():
         [fx, axs, ppx],
         [0.0, fy, ppy],
         [0.0, 0.0, 1.0]])
-    # print("Camera matrix:", camera_matrix)
+    print("Camera matrix:", camera_matrix)
     pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(
         intr.width, intr.height, intr.fx, intr.fy, intr.ppx, intr.ppy)
     # extrinsic = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]] # to roatate pcd around for better viewing
@@ -60,7 +60,7 @@ def main():
 
         rs_color_frame = aligned_frames.get_color_frame()
         np_color = np.asanyarray(rs_color_frame.get_data())
-        np_color = cv2.cvtColor(np_color, cv2.COLOR_RGBA2BGR)
+        np_color = cv2.cvtColor(np_color, cv2.COLOR_RGBA2RGB)
         o3d_color = o3d.geometry.Image(np_color)
 
         rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
@@ -80,7 +80,7 @@ def main():
         vis.create_window(window_name="Point Cloud Visualizer",
                         width=800, height=800)
         vis.add_geometry(pcd)
-        pcd_red_bottle = copy.deepcopy(sam_seg_estimator.ref_pcd)
+        pcd_red_bottle = copy.deepcopy(sam_seg_estimator.ref_pcd_bottle)
         vis.add_geometry(pcd_red_bottle)
         render_opt = vis.get_render_option()
         render_opt.point_size = 2
@@ -109,7 +109,8 @@ def main():
                 continue
             depth_image = np.asanyarray(depth_frame.get_data())
             color_image = np.asanyarray(color_frame.get_data())
-            depth_image = depth_scale * depth_image # convert to m
+            color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
+            # depth_image = depth_scale * depth_image # convert to m
 
             # result_poses = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix, True)
             est_result = sam_seg_estimator.estimate(color_image, depth_image, camera_matrix)
@@ -131,7 +132,7 @@ def main():
                 cv2.drawFrameAxes(axes_img, camera_matrix, dist_coeffs, pose[1], pose[0], 0.05, 1)
 
 
-            ref_pcd_tmp = copy.deepcopy(sam_seg_estimator.ref_pcd)
+            ref_pcd_tmp = copy.deepcopy(sam_seg_estimator.ref_pcd_bottle)
             pcd_best = ref_pcd_tmp.transform(result_poses[0][2].transformation)
             pcd_red_bottle.points = pcd_best.points
             pcd_red_bottle.colors = pcd_best.colors
