@@ -61,7 +61,7 @@ class Estimator:
         if do_viz and res.get("mask") is not None:
             mask = res["mask"].astype(np.uint8)
             overlay = color_img.copy()
-            overlay[mask] = overlay[mask] * 0.3 + np.array([0, 255, 0], dtype=np.float32) * 0.7
+            overlay[mask == 1] = (0.5 * overlay[mask == 1] + 0.5 * np.array([0,255,0])).astype(np.uint8)
             cv2.imshow("rotation_seg_fill", overlay)
             cv2.waitKey(1)
 
